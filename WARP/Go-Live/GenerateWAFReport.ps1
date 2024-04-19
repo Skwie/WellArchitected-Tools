@@ -80,6 +80,7 @@ function Read-File($File)
 
     #Get pillars
     $pillars = $findings | ForEach-Object { $_.Category.Split(":")[1].Trim() } | Select-Object -Unique
+    $findings = $findings | Where-Object { $_.Weight -ne 0 }
 
     #Get scores
     $scoresStart = $content.IndexOf("Recommendations for your workload,,,,,,,") + 2
