@@ -100,7 +100,10 @@ function Read-File($File)
 
         #Get recommendations per service
         $recommendationsPerService = $findings | Where-Object Category -like "*$pillar*" | Select-Object -Property Category, Weight, Link-Text | Group-Object -Property Category
-        
+
+        #get score per service
+        $scorePerService = $servicesPerPillar | Sort-Object -Property Score -Descending
+
         #Get weight per service
         [System.Collections.ArrayList]$weightPerService = @{}
 
@@ -111,6 +114,7 @@ function Read-File($File)
             $wObject = [PSCustomObject]@{
                 "Service" = $recommendationPerService.Name.Split("-")[2].Split(":")[0].Trim()
                 "Weight" = [int]($firstObject.Weight)
+                "Score" = $scorePerService | Where-Object Category -eq $recommendationPerService.Name | Select-Object -First 1 -ExpandProperty Score
                 "Recommendation" = $firstObject."Link-Text"
             }
 
@@ -256,7 +260,7 @@ foreach($pillar in $scorecard.Pillar)
     foreach($servicePerPillar in $servicesPerPillar)
     {
         $j++
-        $stringsToReplaceInDetailSlide = @{ "Detail - Resource_Type_$j" = [string]$servicePerPillar."Service"; "Detail - Weight_$j" = [string]$servicePerPillar.Weight; "Detail - Recommendation_$j" = [string]$servicePerPillar."Recommendation"}
+        $stringsToReplaceInDetailSlide = @{ "Detail - Resource_Type_$j" = [string]$servicePerPillar."Service"; "Detail - Weight_$j" = [string]$servicePerPillar.Score; "Detail - Recommendation_$j" = [string]$servicePerPillar."Recommendation"}
         Edit-Slide -Slide $newDetailSlide -StringToFindAndReplace $stringsToReplaceInDetailSlide
     }
 
