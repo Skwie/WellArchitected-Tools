@@ -19,10 +19,11 @@
   A PowerPoint file will be created within the current directory with name in the format of: Azure Well-Architected $AssessmentType Review - Executive Summary - mmm-dd-yyyy hh.mm.ss.pptx
 
 .NOTES
-  Version:        2.1
-  Author:         Tomas Szabo
-  Date:           05/26/2023
-  License:        MIT
+  Version:          2.1
+  Original author:  Tomas Szabo
+  Editor:           Jordy Groenewoud
+  Date:             07/05/2024
+  License:          MIT
   
 .EXAMPLE
   .\GenerateWAFReport.ps1 
@@ -78,16 +79,16 @@ function Read-File($File)
     $findings = $content[$findingsStart..$findingsEnd] | Out-String | ConvertFrom-CSV -Delimiter ","
     $null = $findings | ForEach-Object { $_.Weight = [int]$_.Weight }
 
-    #Get pillars
-    $pillars = $findings | ForEach-Object { $_.Category.Split(":")[1].Trim() } | Select-Object -Unique
-    $findings = $findings | Where-Object { $_.Weight -ne 0 }
-
     #Get scores
-    $scoresStart = $content.IndexOf("Recommendations for your workload,,,,,,,") + 2
+    $scoresStart = $content.IndexOf("Recommendations for your workload,,,,,") + 2
     $scoresEnd = $findingsStart - 5
     $scores = $content[$scoresStart..$scoresEnd] | Out-String | ConvertFrom-Csv -Delimiter "," -Header 'Category', 'Criticality', 'Score'
     $null = $scores | ForEach-Object { $_.Score = $_.Score.Trim("'").Replace("/100", ""); $_.Score = [int]$_.Score}
-   
+
+    #Get pillars
+    $pillars = $scores | ForEach-Object { $_.Category.Split(":")[1].Trim() } | Select-Object -Unique
+    $findings = $findings | Where-Object { $_.Weight -ne 0 }
+  
     #Get score per pillar and weight per service
     [System.Collections.ArrayList]$scorecard = @{}
     
@@ -267,6 +268,14 @@ foreach($pillar in $scorecard.Pillar)
 
     #Remove empty shapes from detail slides
     Clear-Presentation -Slide $newDetailSlide
+}
+
+#Remove pillars that are not in the report
+$k = 1
+while ($i + $k -le 5) {
+    $stringsToReplaceInSummarySlide = @{ "Summary - Pillar_$($i + $k)" = ""; "Summary - Score_$($i + $k)" = "" }
+    Edit-Slide -Slide $slides.Summary -StringToFindAndReplace $stringsToReplaceInSummarySlide
+    $k++
 }
 
 #Remove empty detail slides
